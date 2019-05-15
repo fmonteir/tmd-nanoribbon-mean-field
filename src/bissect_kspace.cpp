@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 
             std::cout << (abs(bestElDens - fill_target) < tol) << std::endl << std::endl;
 
-            std::cout << ( muHigh - muLow ) / 2 < bissect_tol  << std::endl << std::endl;
+            std::cout << ( muHigh - muLow ) / 2 << std::endl << std::endl;
 
             if ( (abs(bestElDens - fill_target) < tol) ||
                 ( muHigh - muLow ) / 2 < bissect_tol )
