@@ -261,7 +261,6 @@ int main(int argc, char **argv)
                     it++;
                 }
                 solverRd.compute_grand_potential();
-                solverRd.compute_grand_potential();
                 VarGrandPotArr[indSols] = solverRd.grand_potential();
                 ElDensArr[indSols] = solverRd.filling();
                 nUpArr[indSols] = solverRd.UpField();
@@ -284,6 +283,8 @@ int main(int argc, char **argv)
                 }
             }
 
+            std::cout << bestElDens << std::endl << std::endl;
+
             if ( (abs(bestElDens - fill_target) < tol) ||
                 ( muHigh - muLow ) / 2 < bissect_tol )
                 break;
@@ -297,8 +298,6 @@ int main(int argc, char **argv)
             {
                 muHigh = mu;
             }
-            //
-            std::cout << bestElDens << std::endl << std::endl;
         }
     }
 
