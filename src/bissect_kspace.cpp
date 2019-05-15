@@ -285,11 +285,11 @@ int main(int argc, char **argv)
 
             std::cout << bestElDens << std::endl << std::endl;
 
-            std::cout << (abs(bestElDens - fill_target) < tol) << std::endl << std::endl;
+            std::cout << fabs(bestElDens - fill_target) << std::endl << std::endl;
 
             std::cout << ( muHigh - muLow ) / 2 << std::endl << std::endl;
 
-            if ( (abs(bestElDens - fill_target) < tol) ||
+            if ( (fabs(bestElDens - fill_target) < tol) ||
                 ( muHigh - muLow ) / 2 < bissect_tol )
                 break;
 
