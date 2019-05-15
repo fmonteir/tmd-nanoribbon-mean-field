@@ -5,7 +5,7 @@
 #	DEFAULT PARAMETERS
 
 # Number of threads
-nth=2
+nthreads=2
 # Number of k-points
 nk=512
 # Number of atoms in the periodic cell
@@ -35,13 +35,13 @@ sys=0
 
 # Set parameters of the solver here.
 ifeq ($(sys),0)
- CXX = g++-8 -DNTH=$(nth) -DNK=$(nk) -DNA=$(na) -DNX=$(nx) -DNY=$(ny)\
+ CXX = g++-8 -DNTH=$(nthreads) -DNK=$(nk) -DNA=$(na) -DNX=$(nx) -DNY=$(ny)\
   -DNORB=$(norb) -DBETA_START=$(beta_start) -DBETA_SPEED=$(beta_speed)\
   -DBETA_THRESHOLD=$(beta_threshold) -DDELTA=$(delta) -DDAMP_FREQ=$(damp_freq)\
   -DMAX_IT=$(max_it) -fopenmp
 endif
 ifeq ($(sys),1)
- CXX = g++ -DNTH=$(nth) -DNK=$(nk) -DNA=$(na) -DNX=$(nx) -DNY=$(ny)\
+ CXX = g++ -DNTH=$(nthreads) -DNK=$(nk) -DNA=$(na) -DNX=$(nx) -DNY=$(ny)\
   -DNORB=$(norb) -DBETA_START=$(beta_start) -DBETA_SPEED=$(beta_speed)\
   -DBETA_THRESHOLD=$(beta_threshold) -DDELTA=$(delta) -DDAMP_FREQ=$(damp_freq)\
   -DMAX_IT=$(max_it) -fopenmp
@@ -75,6 +75,7 @@ solver: src/$(source).o
 	at which T is set to 0 in the annealing process>"
 	@echo "delta=<Tolerance for the convergence of the self-consistent fields> \
 	damp_freq=<Frequency of damping the s.c. fields> max_it=<max. n. of iterations>"
+	@echo "nthreads=<Number of threads>"
 	@echo ""
 	@echo "		To solve the MF model, simply type ./solver followed by its arguments:"
 	@echo ""
