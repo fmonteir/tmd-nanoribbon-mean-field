@@ -200,8 +200,8 @@ int main(int argc, char **argv)
 
     //
 
-    std::cout << bestElDensLow << std::endl << std::endl;
-    std::cout << bestElDensHigh << std::endl << std::endl;
+    // std::cout << bestElDensLow << std::endl << std::endl;
+    // std::cout << bestElDensHigh << std::endl << std::endl;
 
     Eigen::VectorXd nUpArr [noSeeds];
     Eigen::VectorXd nDwArr [noSeeds];
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
     {
         while ( it_bissect < it_bissect_max )
         {
-            std::cout << it_bissect << std::endl << std::endl;
+            // std::cout << it_bissect << std::endl << std::endl;
             mu = ( muLow + muHigh ) / 2;
 
             //
@@ -283,11 +283,11 @@ int main(int argc, char **argv)
                 }
             }
 
-            std::cout << bestElDens << std::endl << std::endl;
-
-            std::cout << fabs(bestElDens - fill_target) << std::endl << std::endl;
-
-            std::cout << ( muHigh - muLow ) / 2 << std::endl << std::endl;
+            // std::cout << bestElDens << std::endl << std::endl;
+            //
+            // std::cout << fabs(bestElDens - fill_target) << std::endl << std::endl;
+            //
+            // std::cout << ( muHigh - muLow ) / 2 << std::endl << std::endl;
 
             if ( (fabs(bestElDens - fill_target) < tol) ||
                 ( muHigh - muLow ) / 2 < bissect_tol )
