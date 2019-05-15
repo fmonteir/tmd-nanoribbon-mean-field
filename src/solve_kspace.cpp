@@ -7,12 +7,18 @@
 #include <string>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
-#include "model_kspace.hpp"
+#include "model.hpp"
+#ifndef NTH
+#define NTH 2
+#endif
 #ifndef NK
 #define NK 512
 #endif
 #ifndef NA
 #define NA 4
+#endif
+#ifndef NX
+#define NX 12
 #endif
 #ifndef NY
 #define NY 5
@@ -27,7 +33,7 @@
 #define BETA_THRESHOLD 20
 #endif
 #ifndef DELTA
-#define DELTA 0.00001
+#define DELTA 0.000005
 #endif
 #ifndef DAMP_FREQ
 #define DAMP_FREQ 1
@@ -55,20 +61,7 @@ int main(int argc, char **argv)
     double seed = atoi(argv[5]);
     int init_cond = atoi(argv[6]);
 
-    double abs_t0;
-    if (tmd == 1) //  MoS2
-    {abs_t0 = 0.184;}
-    if (tmd == 2) //  WS2
-    {abs_t0 = 0.206;}
-    if (tmd == 3) //  MoSe2
-    {abs_t0 = 0.188;}
-    if (tmd == 4) //  WSe2
-    {abs_t0 = 0.207;}
-    if (tmd == 5) //  MoTe2
-    {abs_t0 = 0.169;}
-    if (tmd == 6) //  WTe2
-    {abs_t0 = 0.175;}
-    model solver(tmd, u, mu, beta);
+    model_k_space solver(tmd, u, mu, beta);
     solver.TMDnanoribbon();
 
     if (init_cond == 1)
@@ -106,6 +99,8 @@ int main(int argc, char **argv)
         parameters << "FILLING" << ',' << solver.filling() << '\n';
         parameters << "FINAL GRAND POTENTIAL" << ',' << solver.grand_potential() << '\n';
         parameters << "FINAL IT" << ',' << it << '\n';
+        parameters << "NA" << ',' << NA << '\n';
+        parameters << "NY" << ',' << NY << '\n';
     }
     parameters.close();
     std::ofstream bands("temp-data/free-bands.csv");

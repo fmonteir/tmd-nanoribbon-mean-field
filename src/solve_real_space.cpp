@@ -7,12 +7,19 @@
 #include <string>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
-#include "model_real_space.hpp"
-#ifndef NX
-#define NX 10
+#include "aux.hpp"
+#include "model.hpp"
+#ifndef NTH
+#define NTH 2
+#endif
+#ifndef NK
+#define NK 512
 #endif
 #ifndef NA
 #define NA 4
+#endif
+#ifndef NX
+#define NX 12
 #endif
 #ifndef NY
 #define NY 5
@@ -27,13 +34,13 @@
 #define BETA_THRESHOLD 20
 #endif
 #ifndef DELTA
-#define DELTA 0.00001
+#define DELTA 0.000005
 #endif
 #ifndef DAMP_FREQ
 #define DAMP_FREQ 1
 #endif
 #ifndef MAX_IT
-#define MAX_IT 50
+#define MAX_IT 500
 #endif
 #ifndef NORB
 #define NORB 3
@@ -68,7 +75,7 @@ int main(int argc, char **argv)
     {abs_t0 = 0.169;}
     if (tmd == 6) //  WTe2
     {abs_t0 = 0.175;}
-    model solver(tmd, u, mu, beta);
+    model_real_space solver(tmd, u, mu, beta);
     solver.TMDnanoribbon();
 
     if (init_cond == 1)
@@ -78,6 +85,10 @@ int main(int argc, char **argv)
     if (init_cond == 2)
     {
         solver.init_para(seed);
+    }
+    if (init_cond == 3)
+    {
+        solver.init_dimer(seed);
     }
 
     unsigned it = 0;
@@ -108,12 +119,6 @@ int main(int argc, char **argv)
         parameters << "FINAL IT" << ',' << it << '\n';
     }
     parameters.close();
-    std::ofstream bands("temp-data/free-bands.csv");
-    if (bands.is_open())
-    {
-        bands << std::setprecision(precision) << solver.TBbands() << '\n';
-    }
-    bands.close();
     std::ofstream nUp("temp-data/nUp.csv");
     if (nUp.is_open())
     {
@@ -133,19 +138,5 @@ int main(int argc, char **argv)
         << solver.grand_potential_evol() << '\n';
     }
     grand_potentials.close();
-    std::ofstream bandsUp("temp-data/bandsUp.csv");
-    if (bandsUp.is_open())
-    {
-        bandsUp << std::setprecision(precision)
-        << solver.MFbandsUp() << '\n';
-    }
-    bandsUp.close();
-    std::ofstream bandsDw("temp-data/bandsDw.csv");
-    if (bandsDw.is_open())
-    {
-        bandsDw << std::setprecision(precision)
-        << solver.MFbandsDw() << '\n';
-    }
-    bandsDw.close();
     return 0;
 }

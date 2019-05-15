@@ -4,10 +4,14 @@
 
 #	DEFAULT PARAMETERS
 
+# Number of threads
+nth=2
 # Number of k-points
 nk=512
 # Number of atoms in the periodic cell
 na=4
+# Number of columns in the ribbon
+nx=12
 # Number of rows in the ribbon
 ny=5
 # Inverse temperature at which the annealing process starts
@@ -19,19 +23,30 @@ beta_threshold=20
 # Number of orbitals in the tight-binding model
 norb=3
 # Tolerance given for the convergence of the self-consistent field
-delta=0.00001
+delta=0.000005
 # Frequency of damping the self-consistent fields
 damp_freq=1
 # Maximum number of iterations
 max_it=500
 # Source file
 source=solve_kspace
+# Linux vs Mac
+sys=0
 
 # Set parameters of the solver here.
-CXX = g++ -DNK=$(nk) -DNA=$(na) -DNY=$(ny) -DNORB=$(norb)\
- -DBETA_START=$(beta_start) -DBETA_SPEED=$(beta_speed)\
- -DBETA_THRESHOLD=$(beta_threshold) -DDELTA=$(delta) -DDAMP_FREQ=$(damp_freq)\
- -DMAX_IT=$(max_it)
+ifeq ($(sys),0)
+ CXX = g++-8 -DNTH=$(nth) -DNK=$(nk) -DNA=$(na) -DNX=$(nx) -DNY=$(ny)\
+  -DNORB=$(norb) -DBETA_START=$(beta_start) -DBETA_SPEED=$(beta_speed)\
+  -DBETA_THRESHOLD=$(beta_threshold) -DDELTA=$(delta) -DDAMP_FREQ=$(damp_freq)\
+  -DMAX_IT=$(max_it) -fopenmp
+endif
+ifeq ($(sys),1)
+ CXX = g++ -DNTH=$(nth) -DNK=$(nk) -DNA=$(na) -DNX=$(nx) -DNY=$(ny)\
+  -DNORB=$(norb) -DBETA_START=$(beta_start) -DBETA_SPEED=$(beta_speed)\
+  -DBETA_THRESHOLD=$(beta_threshold) -DDELTA=$(delta) -DDAMP_FREQ=$(damp_freq)\
+  -DMAX_IT=$(max_it) -fopenmp
+endif
+
 
 include_dir=./includes
 
@@ -54,7 +69,7 @@ solver: src/$(source).o
 	@echo "make clean"
 	@echo ""
 	@echo "make nk=<Number of k-points> na=<Number of atoms in the periodic cell> \
-	ny=<Transverse length> norb=<Number of orbitals>"
+	nx=<Longitudinal length> ny=<Transverse length> norb=<Number of orbitals>"
 	@echo "beta_start=<Starting inverse \
 	temperature> beta_speed=<Annealing speed> beta_threshold=<Inv. temp. at \
 	at which T is set to 0 in the annealing process>"
@@ -77,7 +92,8 @@ solver: src/$(source).o
 	@echo ""
 	$(CXX) $(CXXFLAGS) -o solver src/$(source).o
 
-src/$(source).o: src/$(source).cpp $(include_dir)/model_kspace.hpp\
+src/$(source).o: src/$(source).cpp $(include_dir)/model.hpp\
+	$(include_dir)/aux.hpp
 
 clean:
 	rm -f solver src/*.o
