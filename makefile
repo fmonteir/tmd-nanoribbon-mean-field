@@ -23,7 +23,7 @@ beta_threshold=20
 # Number of orbitals in the tight-binding model
 norb=3
 # Tolerance given for the convergence of the self-consistent field
-delta=0.000005
+delta=0.000001
 # Frequency of damping the self-consistent fields
 damp_freq=1
 # Maximum number of iterations

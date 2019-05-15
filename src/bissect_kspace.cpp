@@ -31,7 +31,7 @@
 #define BETA_THRESHOLD 20
 #endif
 #ifndef DELTA
-#define DELTA 0.000005
+#define DELTA 0.000001
 #endif
 #ifndef DAMP_FREQ
 #define DAMP_FREQ 1
