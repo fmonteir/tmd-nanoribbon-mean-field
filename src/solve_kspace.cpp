@@ -103,12 +103,18 @@ int main(int argc, char **argv)
         parameters << "NY" << ',' << NY << '\n';
     }
     parameters.close();
-    std::ofstream bands("temp-data/free-bands.csv");
-    if (bands.is_open())
+    std::ofstream bandsUp("temp-data/free-bands-up.csv");
+    if (bandsUp.is_open())
     {
-        bands << std::setprecision(precision) << solver.TBbands() << '\n';
+        bandsUp << std::setprecision(precision) << solver.TBbandsUp() << '\n';
     }
-    bands.close();
+    bandsUp.close();
+    std::ofstream bandsDw("temp-data/free-bands-dw.csv");
+    if (bandsDw.is_open())
+    {
+        bandsDw << std::setprecision(precision) << solver.TBbandsDw() << '\n';
+    }
+    bandsDw.close();
     std::ofstream nUp("temp-data/nUp.csv");
     if (nUp.is_open())
     {
@@ -128,19 +134,19 @@ int main(int argc, char **argv)
         << solver.grand_potential_evol() << '\n';
     }
     grand_potentials.close();
-    std::ofstream bandsUp("temp-data/bandsUp.csv");
-    if (bandsUp.is_open())
+    std::ofstream MFbandsUp("temp-data/bandsUp.csv");
+    if (MFbandsUp.is_open())
     {
-        bandsUp << std::setprecision(precision)
+        MFbandsUp << std::setprecision(precision)
         << solver.MFbandsUp() << '\n';
     }
-    bandsUp.close();
-    std::ofstream bandsDw("temp-data/bandsDw.csv");
-    if (bandsDw.is_open())
+    MFbandsUp.close();
+    std::ofstream MFbandsDw("temp-data/bandsDw.csv");
+    if (MFbandsDw.is_open())
     {
-        bandsDw << std::setprecision(precision)
+        MFbandsDw << std::setprecision(precision)
         << solver.MFbandsDw() << '\n';
     }
-    bandsDw.close();
+    MFbandsDw.close();
     return 0;
 }

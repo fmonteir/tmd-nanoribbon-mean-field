@@ -5,7 +5,7 @@
 #	DEFAULT PARAMETERS
 
 # Number of threads
-nthreads=2
+nthreads=4
 # Number of k-points
 nk=512
 # Number of atoms in the periodic cell

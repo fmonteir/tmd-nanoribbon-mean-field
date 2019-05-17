@@ -12,11 +12,11 @@ NY=$(awk 'BEGIN{FS=","; RS=""} {print $16}' temp-data/parameters.csv)
 
 mkdir examples/data
 mkdir examples/data/real-space/
-mkdir examples/data/real-space/NA$NX-NY$NY
-mkdir examples/data/real-space/NA$NX-NY$NY/U$U-BETA$BETA-MU$MU
+mkdir examples/data/real-space/NX$NX-NY$NY
+mkdir examples/data/real-space/NX$NX-NY$NY/U$U-BETA$BETA-MU$MU
 mkdir examples/plots
 mkdir examples/plots/real-space/
-mkdir examples/plots/real-space/NA$NX-NY$NY
-mkdir examples/plots/real-space/NA$NX-NY$NY/U$U-BETA$BETA-MU$MU
-cp -r temp-data/* examples/data/real-space/NA$NX-NY$NY/U$U-BETA$BETA-MU$MU
+mkdir examples/plots/real-space/NX$NX-NY$NY
+mkdir examples/plots/real-space/NX$NX-NY$NY/U$U-BETA$BETA-MU$MU
+cp -r temp-data/* examples/data/real-space/NX$NX-NY$NY/U$U-BETA$BETA-MU$MU
 rm temp-data/*

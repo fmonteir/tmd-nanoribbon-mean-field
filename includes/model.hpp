@@ -59,13 +59,17 @@ class model_k_space
     double t11;
     double t12;
     double t22;
+    double lbda;
+    double Bc;
+    double Bv;
     double u;
     double mu;
     double beta;
     double beta_target;
     double energy;
     Eigen::VectorXd energies;
-    Eigen::Matrix<std::complex<double>, -1, -1> *TB_Hamiltonian;
+    Eigen::Matrix<std::complex<double>, -1, -1> *TB_HamiltonianUp;
+    Eigen::Matrix<std::complex<double>, -1, -1> *TB_HamiltonianDw;
     Eigen::VectorXd nUp;
     Eigen::VectorXd nDw;
     Eigen::VectorXd nUpAux;
@@ -93,28 +97,35 @@ public:
         if (tmd == 1) //  MoS2
         {abs_t0 = 0.184; e0 = 1.046 / abs_t0; e1 = 2.104 / abs_t0;
          t1 = 0.401 / abs_t0; t2 = 0.507 / abs_t0; t11 = 0.218 / abs_t0;
-         t12 = 0.338 / abs_t0; t22 = 0.057 / abs_t0;}
+         t12 = 0.338 / abs_t0; t22 = 0.057 / abs_t0; lbda = 0.073 / abs_t0;
+         Bc = 0; Bv = 0;}
         if (tmd == 2) //  WS2
         {abs_t0 = 0.206; e0 = 1.130 / abs_t0; e1 = 2.275 / abs_t0;
          t1 = 0.567 / abs_t0; t2 = 0.536 / abs_t0; t11 = 0.286 / abs_t0;
-         t12 = 0.384 / abs_t0; t22 = -0.061 / abs_t0;}
+         t12 = 0.384 / abs_t0; t22 = -0.061 / abs_t0; lbda = 0.211 / abs_t0;
+         Bc = 0; Bv = 0;}
         if (tmd == 3) //  MoSe2
         {abs_t0 = 0.188;   e0 = 0.919 / abs_t0; e1 = 2.065 / abs_t0;
          t1 = 0.317 / abs_t0; t2 = 0.456 / abs_t0; t11 = 0.211 / abs_t0;
-         t12 = 0.290 / abs_t0; t22 = 0.130 / abs_t0;}
+         t12 = 0.290 / abs_t0; t22 = 0.130 / abs_t0; lbda = 0.091 / abs_t0;
+         Bc = 0; Bv = 0;}
         if (tmd == 4) //  WSe2
         {abs_t0 = 0.207; e0 = 0.943 / abs_t0; e1 = 2.179 / abs_t0;
          t1 = 0.457 / abs_t0; t2 = 0.486 / abs_t0; t11 = 0.263 / abs_t0;
-         t12 = 0.329 / abs_t0;t22 = 0.034 / abs_t0;}
+         t12 = 0.329 / abs_t0;t22 = 0.034 / abs_t0; lbda = 0.228 / abs_t0;
+         Bc = 0; Bv = 0;}
         if (tmd == 5) //  MoTe2
         {abs_t0 = 0.169; e0 = 0.605 / abs_t0; e1 = 1.972 / abs_t0;
          t1 = 0.228 / abs_t0; t2 = 0.390 / abs_t0; t11 = 0.207 / abs_t0;
-         t12 = 0.239 / abs_t0; t22 = 0.252 / abs_t0;}
+         t12 = 0.239 / abs_t0; t22 = 0.252 / abs_t0; lbda = 0.107 / abs_t0;
+         Bc = 0.206 / abs_t0; Bv = 0.170 / abs_t0;}
         if (tmd == 6) //  WTe2
         {abs_t0 = 0.175; e0 = 0.606 / abs_t0; e1 = 2.102 / abs_t0;
          t1 = 0.342 / abs_t0; t2 = 0.410 / abs_t0; t11 = 0.233 / abs_t0;
-         t12 = 0.270 / abs_t0; t22 = 0.190 / abs_t0;}
-        TB_Hamiltonian = new Eigen::Matrix<std::complex<double>, -1, -1>[NK];
+         t12 = 0.270 / abs_t0; t22 = 0.190 / abs_t0; lbda = 0.237 / abs_t0;
+         Bc = 0; Bv = 0;}
+        TB_HamiltonianUp = new Eigen::Matrix<std::complex<double>, -1, -1>[NK];
+        TB_HamiltonianDw = new Eigen::Matrix<std::complex<double>, -1, -1>[NK];
         KsolUp = new Eigen::SelfAdjointEigenSolver<Eigen::Matrix
           <std::complex<double>, -1, -1>>[NK];
         KsolDw = new Eigen::SelfAdjointEigenSolver<Eigen::Matrix
@@ -134,6 +145,8 @@ public:
         deltaDw = DELTA + 1.0;
     }
     void TMDnanoribbon();
+    void TMDnanoribbonSOC();
+    void TMDnanoribbonSOC_Mag();
     void reset(double on_site_interaction, double chem_pot, double beta_f);
     void diagonalize();
     void fermi();
@@ -147,7 +160,8 @@ public:
     bool loop_condition(unsigned it);
     Eigen::VectorXd UpField();
     Eigen::VectorXd DwField();
-    Eigen::MatrixXd TBbands();
+    Eigen::MatrixXd TBbandsUp();
+    Eigen::MatrixXd TBbandsDw();
     Eigen::MatrixXd MFbandsUp();
     Eigen::MatrixXd MFbandsDw();
     Eigen::VectorXd grand_potential_evol();
@@ -158,79 +172,148 @@ public:
 
 void model_k_space::TMDnanoribbon()
 {
-    node n(NORB);
+    node nUp(NORB);
+    node nDw(NORB);
 
     // Add hoppings
-    n.add_hopping(0, 0, 0, 0, std::complex<double>(e0,0));
-    n.add_hopping(1, 1, 0, 0, std::complex<double>(e1,0));
-    n.add_hopping(2, 2, 0, 0, std::complex<double>(e1,0));
+    nUp.add_hopping(0, 0, 0, 0, std::complex<double>(e0,0));
+    nUp.add_hopping(1, 1, 0, 0, std::complex<double>(e1,0));
+    nUp.add_hopping(2, 2, 0, 0, std::complex<double>(e1,0));
     // R1
-    n.add_hopping(0, 0, 1, 0, std::complex<double>(t0,0));
-    n.add_hopping(1, 1, 1, 0, std::complex<double>(t11,0));
-    n.add_hopping(2, 2, 1, 0, std::complex<double>(t22,0));
-    n.add_hopping(0, 1, 1, 0, std::complex<double>(t1,0));
-    n.add_hopping(0, 2, 1, 0, std::complex<double>(t2,0));
-    n.add_hopping(1, 2, 1, 0, std::complex<double>(t12,0));
-    n.add_hopping(1, 0, 1, 0, std::complex<double>(-t1,0));
-    n.add_hopping(2, 0, 1, 0, std::complex<double>(t2,0));
-    n.add_hopping(2, 1, 1, 0, std::complex<double>(-t12,0));
+    nUp.add_hopping(0, 0, 1, 0, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 1, 0, std::complex<double>(t11,0));
+    nUp.add_hopping(2, 2, 1, 0, std::complex<double>(t22,0));
+    nUp.add_hopping(0, 1, 1, 0, std::complex<double>(t1,0));
+    nUp.add_hopping(0, 2, 1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(1, 2, 1, 0, std::complex<double>(t12,0));
+    nUp.add_hopping(1, 0, 1, 0, std::complex<double>(-t1,0));
+    nUp.add_hopping(2, 0, 1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(2, 1, 1, 0, std::complex<double>(-t12,0));
     // R4
-    n.add_hopping(0, 0, -1, 0, std::complex<double>(t0,0));
-    n.add_hopping(1, 1, -1, 0, std::complex<double>(t11,0));
-    n.add_hopping(2, 2, -1, 0, std::complex<double>(t22,0));
-    n.add_hopping(0, 1, -1, 0, std::complex<double>(-t1,0));
-    n.add_hopping(0, 2, -1, 0, std::complex<double>(t2,0));
-    n.add_hopping(1, 2, -1, 0, std::complex<double>(-t12,0));
-    n.add_hopping(1, 0, -1, 0, std::complex<double>(t1,0));
-    n.add_hopping(2, 0, -1, 0, std::complex<double>(t2,0));
-    n.add_hopping(2, 1, -1, 0, std::complex<double>(t12,0));
+    nUp.add_hopping(0, 0, -1, 0, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, -1, 0, std::complex<double>(t11,0));
+    nUp.add_hopping(2, 2, -1, 0, std::complex<double>(t22,0));
+    nUp.add_hopping(0, 1, -1, 0, std::complex<double>(-t1,0));
+    nUp.add_hopping(0, 2, -1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(1, 2, -1, 0, std::complex<double>(-t12,0));
+    nUp.add_hopping(1, 0, -1, 0, std::complex<double>(t1,0));
+    nUp.add_hopping(2, 0, -1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(2, 1, -1, 0, std::complex<double>(t12,0));
     // R2
-    n.add_hopping(0, 0, 1, -1, std::complex<double>(t0,0));
-    n.add_hopping(1, 1, 1, -1, std::complex<double>((t11 + 3 * t22)/4,0));
-    n.add_hopping(2, 2, 1, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
-    n.add_hopping(0, 1, 1, -1, std::complex<double>(t1/2 - sqrt(3)*t2/2,0));
-    n.add_hopping(0, 2, 1, -1, std::complex<double>(-sqrt(3)*t1/2 - t2/2,0));
-    n.add_hopping(1, 2, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
-    n.add_hopping(1, 0, 1, -1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
-    n.add_hopping(2, 0, 1, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(2, 1, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    nUp.add_hopping(0, 0, 1, -1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 1, -1, std::complex<double>((t11 + 3 * t22)/4,0));
+    nUp.add_hopping(2, 2, 1, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, 1, -1, std::complex<double>(t1/2 - sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, 1, -1, std::complex<double>(-sqrt(3)*t1/2 - t2/2,0));
+    nUp.add_hopping(1, 2, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    nUp.add_hopping(1, 0, 1, -1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, 1, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
     // R5
-    n.add_hopping(0, 0, -1, 1, std::complex<double>(t0,0));
-    n.add_hopping(1, 1, -1, 1, std::complex<double>((t11 + 3 * t22 ) / 4,0));
-    n.add_hopping(2, 2, -1, 1, std::complex<double>((3 * t11 + t22 ) / 4,0));
-    n.add_hopping(0, 1, -1, 1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
-    n.add_hopping(0, 2, -1, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(1, 2, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
-    n.add_hopping(1, 0, -1, 1, std::complex<double>(t1/2-sqrt(3)*t2/2,0));
-    n.add_hopping(2, 0, -1, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(2, 1, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    nUp.add_hopping(0, 0, -1, 1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, -1, 1, std::complex<double>((t11 + 3 * t22 ) / 4,0));
+    nUp.add_hopping(2, 2, -1, 1, std::complex<double>((3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, -1, 1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, -1, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(1, 2, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    nUp.add_hopping(1, 0, -1, 1, std::complex<double>(t1/2-sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, -1, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
     // R3
-    n.add_hopping(0, 0, 0, -1, std::complex<double>(t0,0));
-    n.add_hopping(1, 1, 0, -1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
-    n.add_hopping(2, 2, 0, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
-    n.add_hopping(0, 1, 0, -1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
-    n.add_hopping(0, 2, 0, -1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(1, 2, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
-    n.add_hopping(1, 0, 0, -1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
-    n.add_hopping(2, 0, 0, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(2, 1, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    nUp.add_hopping(0, 0, 0, -1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 0, -1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nUp.add_hopping(2, 2, 0, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, 0, -1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, 0, -1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(1, 2, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+    nUp.add_hopping(1, 0, 0, -1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, 0, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
     // R6
-    n.add_hopping(0, 0, 0, 1, std::complex<double>(t0,0));
-    n.add_hopping(1, 1, 0, 1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
-    n.add_hopping(2, 2, 0, 1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
-    n.add_hopping(0, 1, 0, 1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
-    n.add_hopping(0, 2, 0, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(1, 2, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
-    n.add_hopping(1, 0, 0, 1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
-    n.add_hopping(2, 0, 0, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(2, 1, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+    nUp.add_hopping(0, 0, 0, 1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 0, 1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nUp.add_hopping(2, 2, 0, 1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, 0, 1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, 0, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(1, 2, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    nUp.add_hopping(1, 0, 0, 1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, 0, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+
+    // Add hoppings
+    nDw.add_hopping(0, 0, 0, 0, std::complex<double>(e0,0));
+    nDw.add_hopping(1, 1, 0, 0, std::complex<double>(e1,0));
+    nDw.add_hopping(2, 2, 0, 0, std::complex<double>(e1,0));
+    // R1
+    nDw.add_hopping(0, 0, 1, 0, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 1, 0, std::complex<double>(t11,0));
+    nDw.add_hopping(2, 2, 1, 0, std::complex<double>(t22,0));
+    nDw.add_hopping(0, 1, 1, 0, std::complex<double>(t1,0));
+    nDw.add_hopping(0, 2, 1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(1, 2, 1, 0, std::complex<double>(t12,0));
+    nDw.add_hopping(1, 0, 1, 0, std::complex<double>(-t1,0));
+    nDw.add_hopping(2, 0, 1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(2, 1, 1, 0, std::complex<double>(-t12,0));
+    // R4
+    nDw.add_hopping(0, 0, -1, 0, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, -1, 0, std::complex<double>(t11,0));
+    nDw.add_hopping(2, 2, -1, 0, std::complex<double>(t22,0));
+    nDw.add_hopping(0, 1, -1, 0, std::complex<double>(-t1,0));
+    nDw.add_hopping(0, 2, -1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(1, 2, -1, 0, std::complex<double>(-t12,0));
+    nDw.add_hopping(1, 0, -1, 0, std::complex<double>(t1,0));
+    nDw.add_hopping(2, 0, -1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(2, 1, -1, 0, std::complex<double>(t12,0));
+    // R2
+    nDw.add_hopping(0, 0, 1, -1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 1, -1, std::complex<double>((t11 + 3 * t22)/4,0));
+    nDw.add_hopping(2, 2, 1, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, 1, -1, std::complex<double>(t1/2 - sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, 1, -1, std::complex<double>(-sqrt(3)*t1/2 - t2/2,0));
+    nDw.add_hopping(1, 2, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    nDw.add_hopping(1, 0, 1, -1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, 1, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    // R5
+    nDw.add_hopping(0, 0, -1, 1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, -1, 1, std::complex<double>((t11 + 3 * t22 ) / 4,0));
+    nDw.add_hopping(2, 2, -1, 1, std::complex<double>((3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, -1, 1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, -1, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(1, 2, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    nDw.add_hopping(1, 0, -1, 1, std::complex<double>(t1/2-sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, -1, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    // R3
+    nDw.add_hopping(0, 0, 0, -1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 0, -1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nDw.add_hopping(2, 2, 0, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, 0, -1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, 0, -1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(1, 2, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+    nDw.add_hopping(1, 0, 0, -1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, 0, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    // R6
+    nDw.add_hopping(0, 0, 0, 1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 0, 1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nDw.add_hopping(2, 2, 0, 1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, 0, 1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, 0, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(1, 2, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    nDw.add_hopping(1, 0, 0, 1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, 0, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
 
     // Build the Tight-binding part of the Hamiltonian
     double k;
     for (int idx_k = 0; idx_k < NK; idx_k++ )
     {
         k = 2 * M_PI / NK * idx_k - M_PI;
-        TB_Hamiltonian[idx_k] =
+        TB_HamiltonianUp[idx_k] =
+        Eigen::Matrix<std::complex<double>, -1, -1>::Zero
+          (NA * NY * NORB, NA * NY * NORB);
+        TB_HamiltonianDw[idx_k] =
         Eigen::Matrix<std::complex<double>, -1, -1>::Zero
           (NA * NY * NORB, NA * NY * NORB);
         for (int atom = 0; atom < NA; atom++ )
@@ -239,21 +322,388 @@ void model_k_space::TMDnanoribbon()
               {
                   unsigned start_idx = orb + NORB * ( NY * atom + y );
                   for (unsigned neighbor_idx = 0;
-                      neighbor_idx < n.NHoppings[orb]; neighbor_idx++)
+                      neighbor_idx < nUp.NHoppings[orb]; neighbor_idx++)
                   {
                       unsigned end_atom =
-                        ( atom + n.x_idxs[orb].at(neighbor_idx) + NA ) % NA;
+                        ( atom + nUp.x_idxs[orb].at(neighbor_idx) + NA ) % NA;
                       int end_y =
-                        y + n.y_idxs[orb].at(neighbor_idx);
+                        y + nUp.y_idxs[orb].at(neighbor_idx);
                       unsigned end_idx =
-                        n.end_orbs[orb].at(neighbor_idx) + NORB
+                        nUp.end_orbs[orb].at(neighbor_idx) + NORB
                         * ( NY * end_atom + end_y );
                       int cell_distance =
-                        (atom + n.x_idxs[orb].at(neighbor_idx) + NA) / NA - 1;
+                        (atom + nUp.x_idxs[orb].at(neighbor_idx) + NA) / NA - 1;
                       if ( end_y >= 0 && end_y < NY )
                       {
-                          TB_Hamiltonian[idx_k](start_idx, end_idx)
-                             += n.hoppings[orb].at(neighbor_idx)
+                          TB_HamiltonianUp[idx_k](start_idx, end_idx)
+                             += nUp.hoppings[orb].at(neighbor_idx)
+                             * exp(std::complex<double>(0, k * cell_distance ));
+                          TB_HamiltonianDw[idx_k](start_idx, end_idx)
+                             += nDw.hoppings[orb].at(neighbor_idx)
+                             * exp(std::complex<double>(0, k * cell_distance ));
+                      }
+
+                  }
+              }
+      }
+}
+
+void model_k_space::TMDnanoribbonSOC()
+{
+    node nUp(NORB);
+    node nDw(NORB);
+
+    // Add hoppings
+    nUp.add_hopping(0, 0, 0, 0, std::complex<double>(e0,0));
+    nUp.add_hopping(1, 1, 0, 0, std::complex<double>(e1,0));
+    nUp.add_hopping(2, 2, 0, 0, std::complex<double>(e1,0));
+    nUp.add_hopping(1, 2, 0, 0, std::complex<double>(0,lbda));
+    nUp.add_hopping(2, 1, 0, 0, std::complex<double>(0,-lbda));
+    // R1
+    nUp.add_hopping(0, 0, 1, 0, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 1, 0, std::complex<double>(t11,0));
+    nUp.add_hopping(2, 2, 1, 0, std::complex<double>(t22,0));
+    nUp.add_hopping(0, 1, 1, 0, std::complex<double>(t1,0));
+    nUp.add_hopping(0, 2, 1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(1, 2, 1, 0, std::complex<double>(t12,0));
+    nUp.add_hopping(1, 0, 1, 0, std::complex<double>(-t1,0));
+    nUp.add_hopping(2, 0, 1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(2, 1, 1, 0, std::complex<double>(-t12,0));
+    // R4
+    nUp.add_hopping(0, 0, -1, 0, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, -1, 0, std::complex<double>(t11,0));
+    nUp.add_hopping(2, 2, -1, 0, std::complex<double>(t22,0));
+    nUp.add_hopping(0, 1, -1, 0, std::complex<double>(-t1,0));
+    nUp.add_hopping(0, 2, -1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(1, 2, -1, 0, std::complex<double>(-t12,0));
+    nUp.add_hopping(1, 0, -1, 0, std::complex<double>(t1,0));
+    nUp.add_hopping(2, 0, -1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(2, 1, -1, 0, std::complex<double>(t12,0));
+    // R2
+    nUp.add_hopping(0, 0, 1, -1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 1, -1, std::complex<double>((t11 + 3 * t22)/4,0));
+    nUp.add_hopping(2, 2, 1, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, 1, -1, std::complex<double>(t1/2 - sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, 1, -1, std::complex<double>(-sqrt(3)*t1/2 - t2/2,0));
+    nUp.add_hopping(1, 2, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    nUp.add_hopping(1, 0, 1, -1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, 1, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    // R5
+    nUp.add_hopping(0, 0, -1, 1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, -1, 1, std::complex<double>((t11 + 3 * t22 ) / 4,0));
+    nUp.add_hopping(2, 2, -1, 1, std::complex<double>((3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, -1, 1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, -1, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(1, 2, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    nUp.add_hopping(1, 0, -1, 1, std::complex<double>(t1/2-sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, -1, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    // R3
+    nUp.add_hopping(0, 0, 0, -1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 0, -1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nUp.add_hopping(2, 2, 0, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, 0, -1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, 0, -1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(1, 2, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+    nUp.add_hopping(1, 0, 0, -1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, 0, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    // R6
+    nUp.add_hopping(0, 0, 0, 1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 0, 1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nUp.add_hopping(2, 2, 0, 1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, 0, 1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, 0, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(1, 2, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    nUp.add_hopping(1, 0, 0, 1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, 0, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+
+    // Add hoppings
+    nDw.add_hopping(0, 0, 0, 0, std::complex<double>(e0,0));
+    nDw.add_hopping(1, 1, 0, 0, std::complex<double>(e1,0));
+    nDw.add_hopping(2, 2, 0, 0, std::complex<double>(e1,0));
+    nDw.add_hopping(1, 2, 0, 0, std::complex<double>(0,-lbda));
+    nDw.add_hopping(2, 1, 0, 0, std::complex<double>(0,lbda));
+    // R1
+    nDw.add_hopping(0, 0, 1, 0, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 1, 0, std::complex<double>(t11,0));
+    nDw.add_hopping(2, 2, 1, 0, std::complex<double>(t22,0));
+    nDw.add_hopping(0, 1, 1, 0, std::complex<double>(t1,0));
+    nDw.add_hopping(0, 2, 1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(1, 2, 1, 0, std::complex<double>(t12,0));
+    nDw.add_hopping(1, 0, 1, 0, std::complex<double>(-t1,0));
+    nDw.add_hopping(2, 0, 1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(2, 1, 1, 0, std::complex<double>(-t12,0));
+    // R4
+    nDw.add_hopping(0, 0, -1, 0, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, -1, 0, std::complex<double>(t11,0));
+    nDw.add_hopping(2, 2, -1, 0, std::complex<double>(t22,0));
+    nDw.add_hopping(0, 1, -1, 0, std::complex<double>(-t1,0));
+    nDw.add_hopping(0, 2, -1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(1, 2, -1, 0, std::complex<double>(-t12,0));
+    nDw.add_hopping(1, 0, -1, 0, std::complex<double>(t1,0));
+    nDw.add_hopping(2, 0, -1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(2, 1, -1, 0, std::complex<double>(t12,0));
+    // R2
+    nDw.add_hopping(0, 0, 1, -1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 1, -1, std::complex<double>((t11 + 3 * t22)/4,0));
+    nDw.add_hopping(2, 2, 1, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, 1, -1, std::complex<double>(t1/2 - sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, 1, -1, std::complex<double>(-sqrt(3)*t1/2 - t2/2,0));
+    nDw.add_hopping(1, 2, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    nDw.add_hopping(1, 0, 1, -1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, 1, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    // R5
+    nDw.add_hopping(0, 0, -1, 1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, -1, 1, std::complex<double>((t11 + 3 * t22 ) / 4,0));
+    nDw.add_hopping(2, 2, -1, 1, std::complex<double>((3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, -1, 1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, -1, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(1, 2, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    nDw.add_hopping(1, 0, -1, 1, std::complex<double>(t1/2-sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, -1, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    // R3
+    nDw.add_hopping(0, 0, 0, -1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 0, -1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nDw.add_hopping(2, 2, 0, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, 0, -1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, 0, -1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(1, 2, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+    nDw.add_hopping(1, 0, 0, -1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, 0, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    // R6
+    nDw.add_hopping(0, 0, 0, 1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 0, 1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nDw.add_hopping(2, 2, 0, 1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, 0, 1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, 0, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(1, 2, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    nDw.add_hopping(1, 0, 0, 1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, 0, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+
+    // Build the Tight-binding part of the Hamiltonian
+    double k;
+    for (int idx_k = 0; idx_k < NK; idx_k++ )
+    {
+        k = 2 * M_PI / NK * idx_k - M_PI;
+        TB_HamiltonianUp[idx_k] =
+        Eigen::Matrix<std::complex<double>, -1, -1>::Zero
+          (NA * NY * NORB, NA * NY * NORB);
+        TB_HamiltonianDw[idx_k] =
+        Eigen::Matrix<std::complex<double>, -1, -1>::Zero
+          (NA * NY * NORB, NA * NY * NORB);
+        for (int atom = 0; atom < NA; atom++ )
+            for (int y = 0; y < NY; y++ )
+              for (int orb = 0; orb < NORB; orb++ )
+              {
+                  unsigned start_idx = orb + NORB * ( NY * atom + y );
+                  for (unsigned neighbor_idx = 0;
+                      neighbor_idx < nUp.NHoppings[orb]; neighbor_idx++)
+                  {
+                      unsigned end_atom =
+                        ( atom + nUp.x_idxs[orb].at(neighbor_idx) + NA ) % NA;
+                      int end_y =
+                        y + nUp.y_idxs[orb].at(neighbor_idx);
+                      unsigned end_idx =
+                        nUp.end_orbs[orb].at(neighbor_idx) + NORB
+                        * ( NY * end_atom + end_y );
+                      int cell_distance =
+                        (atom + nUp.x_idxs[orb].at(neighbor_idx) + NA) / NA - 1;
+                      if ( end_y >= 0 && end_y < NY )
+                      {
+                          TB_HamiltonianUp[idx_k](start_idx, end_idx)
+                             += nUp.hoppings[orb].at(neighbor_idx)
+                             * exp(std::complex<double>(0, k * cell_distance ));
+                          TB_HamiltonianDw[idx_k](start_idx, end_idx)
+                             += nDw.hoppings[orb].at(neighbor_idx)
+                             * exp(std::complex<double>(0, k * cell_distance ));
+                      }
+
+                  }
+              }
+      }
+}
+
+void model_k_space::TMDnanoribbonSOC_Mag()
+{
+    node nUp(NORB);
+    node nDw(NORB);
+
+    // Add hoppings
+    nUp.add_hopping(0, 0, 0, 0, std::complex<double>(e0 - Bc,0));
+    nUp.add_hopping(1, 1, 0, 0, std::complex<double>(e1 - Bv,0));
+    nUp.add_hopping(2, 2, 0, 0, std::complex<double>(e1 - Bv,0));
+    nUp.add_hopping(1, 2, 0, 0, std::complex<double>(0,lbda));
+    nUp.add_hopping(2, 1, 0, 0, std::complex<double>(0,-lbda));
+    // R1
+    nUp.add_hopping(0, 0, 1, 0, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 1, 0, std::complex<double>(t11,0));
+    nUp.add_hopping(2, 2, 1, 0, std::complex<double>(t22,0));
+    nUp.add_hopping(0, 1, 1, 0, std::complex<double>(t1,0));
+    nUp.add_hopping(0, 2, 1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(1, 2, 1, 0, std::complex<double>(t12,0));
+    nUp.add_hopping(1, 0, 1, 0, std::complex<double>(-t1,0));
+    nUp.add_hopping(2, 0, 1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(2, 1, 1, 0, std::complex<double>(-t12,0));
+    // R4
+    nUp.add_hopping(0, 0, -1, 0, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, -1, 0, std::complex<double>(t11,0));
+    nUp.add_hopping(2, 2, -1, 0, std::complex<double>(t22,0));
+    nUp.add_hopping(0, 1, -1, 0, std::complex<double>(-t1,0));
+    nUp.add_hopping(0, 2, -1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(1, 2, -1, 0, std::complex<double>(-t12,0));
+    nUp.add_hopping(1, 0, -1, 0, std::complex<double>(t1,0));
+    nUp.add_hopping(2, 0, -1, 0, std::complex<double>(t2,0));
+    nUp.add_hopping(2, 1, -1, 0, std::complex<double>(t12,0));
+    // R2
+    nUp.add_hopping(0, 0, 1, -1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 1, -1, std::complex<double>((t11 + 3 * t22)/4,0));
+    nUp.add_hopping(2, 2, 1, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, 1, -1, std::complex<double>(t1/2 - sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, 1, -1, std::complex<double>(-sqrt(3)*t1/2 - t2/2,0));
+    nUp.add_hopping(1, 2, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    nUp.add_hopping(1, 0, 1, -1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, 1, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    // R5
+    nUp.add_hopping(0, 0, -1, 1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, -1, 1, std::complex<double>((t11 + 3 * t22 ) / 4,0));
+    nUp.add_hopping(2, 2, -1, 1, std::complex<double>((3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, -1, 1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, -1, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(1, 2, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    nUp.add_hopping(1, 0, -1, 1, std::complex<double>(t1/2-sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, -1, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    // R3
+    nUp.add_hopping(0, 0, 0, -1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 0, -1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nUp.add_hopping(2, 2, 0, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, 0, -1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, 0, -1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(1, 2, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+    nUp.add_hopping(1, 0, 0, -1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, 0, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    // R6
+    nUp.add_hopping(0, 0, 0, 1, std::complex<double>(t0,0));
+    nUp.add_hopping(1, 1, 0, 1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nUp.add_hopping(2, 2, 0, 1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nUp.add_hopping(0, 1, 0, 1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(0, 2, 0, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(1, 2, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    nUp.add_hopping(1, 0, 0, 1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nUp.add_hopping(2, 0, 0, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nUp.add_hopping(2, 1, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+
+    // Add hoppings
+    nDw.add_hopping(0, 0, 0, 0, std::complex<double>(e0 + Bc,0));
+    nDw.add_hopping(1, 1, 0, 0, std::complex<double>(e1 + Bv,0));
+    nDw.add_hopping(2, 2, 0, 0, std::complex<double>(e1 + Bv,0));
+    nDw.add_hopping(1, 2, 0, 0, std::complex<double>(0,-lbda));
+    nDw.add_hopping(2, 1, 0, 0, std::complex<double>(0,lbda));
+    // R1
+    nDw.add_hopping(0, 0, 1, 0, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 1, 0, std::complex<double>(t11,0));
+    nDw.add_hopping(2, 2, 1, 0, std::complex<double>(t22,0));
+    nDw.add_hopping(0, 1, 1, 0, std::complex<double>(t1,0));
+    nDw.add_hopping(0, 2, 1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(1, 2, 1, 0, std::complex<double>(t12,0));
+    nDw.add_hopping(1, 0, 1, 0, std::complex<double>(-t1,0));
+    nDw.add_hopping(2, 0, 1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(2, 1, 1, 0, std::complex<double>(-t12,0));
+    // R4
+    nDw.add_hopping(0, 0, -1, 0, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, -1, 0, std::complex<double>(t11,0));
+    nDw.add_hopping(2, 2, -1, 0, std::complex<double>(t22,0));
+    nDw.add_hopping(0, 1, -1, 0, std::complex<double>(-t1,0));
+    nDw.add_hopping(0, 2, -1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(1, 2, -1, 0, std::complex<double>(-t12,0));
+    nDw.add_hopping(1, 0, -1, 0, std::complex<double>(t1,0));
+    nDw.add_hopping(2, 0, -1, 0, std::complex<double>(t2,0));
+    nDw.add_hopping(2, 1, -1, 0, std::complex<double>(t12,0));
+    // R2
+    nDw.add_hopping(0, 0, 1, -1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 1, -1, std::complex<double>((t11 + 3 * t22)/4,0));
+    nDw.add_hopping(2, 2, 1, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, 1, -1, std::complex<double>(t1/2 - sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, 1, -1, std::complex<double>(-sqrt(3)*t1/2 - t2/2,0));
+    nDw.add_hopping(1, 2, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    nDw.add_hopping(1, 0, 1, -1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, 1, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    // R5
+    nDw.add_hopping(0, 0, -1, 1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, -1, 1, std::complex<double>((t11 + 3 * t22 ) / 4,0));
+    nDw.add_hopping(2, 2, -1, 1, std::complex<double>((3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, -1, 1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, -1, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(1, 2, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
+    nDw.add_hopping(1, 0, -1, 1, std::complex<double>(t1/2-sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, -1, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
+    // R3
+    nDw.add_hopping(0, 0, 0, -1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 0, -1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nDw.add_hopping(2, 2, 0, -1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, 0, -1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, 0, -1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(1, 2, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+    nDw.add_hopping(1, 0, 0, -1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, 0, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    // R6
+    nDw.add_hopping(0, 0, 0, 1, std::complex<double>(t0,0));
+    nDw.add_hopping(1, 1, 0, 1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
+    nDw.add_hopping(2, 2, 0, 1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
+    nDw.add_hopping(0, 1, 0, 1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(0, 2, 0, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(1, 2, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
+    nDw.add_hopping(1, 0, 0, 1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
+    nDw.add_hopping(2, 0, 0, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
+    nDw.add_hopping(2, 1, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+
+    // Build the Tight-binding part of the Hamiltonian
+    double k;
+    for (int idx_k = 0; idx_k < NK; idx_k++ )
+    {
+        k = 2 * M_PI / NK * idx_k - M_PI;
+        TB_HamiltonianUp[idx_k] =
+        Eigen::Matrix<std::complex<double>, -1, -1>::Zero
+          (NA * NY * NORB, NA * NY * NORB);
+        TB_HamiltonianDw[idx_k] =
+        Eigen::Matrix<std::complex<double>, -1, -1>::Zero
+          (NA * NY * NORB, NA * NY * NORB);
+        for (int atom = 0; atom < NA; atom++ )
+            for (int y = 0; y < NY; y++ )
+              for (int orb = 0; orb < NORB; orb++ )
+              {
+                  unsigned start_idx = orb + NORB * ( NY * atom + y );
+                  for (unsigned neighbor_idx = 0;
+                      neighbor_idx < nUp.NHoppings[orb]; neighbor_idx++)
+                  {
+                      unsigned end_atom =
+                        ( atom + nUp.x_idxs[orb].at(neighbor_idx) + NA ) % NA;
+                      int end_y =
+                        y + nUp.y_idxs[orb].at(neighbor_idx);
+                      unsigned end_idx =
+                        nUp.end_orbs[orb].at(neighbor_idx) + NORB
+                        * ( NY * end_atom + end_y );
+                      int cell_distance =
+                        (atom + nUp.x_idxs[orb].at(neighbor_idx) + NA) / NA - 1;
+                      if ( end_y >= 0 && end_y < NY )
+                      {
+                          TB_HamiltonianUp[idx_k](start_idx, end_idx)
+                             += nUp.hoppings[orb].at(neighbor_idx)
+                             * exp(std::complex<double>(0, k * cell_distance ));
+                          TB_HamiltonianDw[idx_k](start_idx, end_idx)
+                             += nDw.hoppings[orb].at(neighbor_idx)
                              * exp(std::complex<double>(0, k * cell_distance ));
                       }
 
@@ -281,15 +731,29 @@ void model_k_space::reset(double on_site_interaction, double chem_pot, double be
     deltaDw = DELTA + 1.0;
 }
 
-Eigen::MatrixXd model_k_space::TBbands()
+Eigen::MatrixXd model_k_space::TBbandsUp()
 {
     for (int idx_k = 0; idx_k < NK; idx_k++)
     {
         KsolUp[idx_k].compute(
-          TB_Hamiltonian[idx_k] );
+          TB_HamiltonianUp[idx_k] );
         for (int idxEn = 0; idxEn < NA * NY * NORB; idxEn++)
         {
             freeBands(idx_k, idxEn) = KsolUp[idx_k].eigenvalues()(idxEn);
+        }
+    }
+    return abs_t0 * freeBands;
+}
+
+Eigen::MatrixXd model_k_space::TBbandsDw()
+{
+    for (int idx_k = 0; idx_k < NK; idx_k++)
+    {
+        KsolDw[idx_k].compute(
+          TB_HamiltonianDw[idx_k] );
+        for (int idxEn = 0; idxEn < NA * NY * NORB; idxEn++)
+        {
+            freeBands(idx_k, idxEn) = KsolDw[idx_k].eigenvalues()(idxEn);
         }
     }
     return abs_t0 * freeBands;
@@ -301,9 +765,9 @@ void model_k_space::diagonalize()
     for (int idx_k = 0; idx_k < NK; idx_k++)
     {
         KsolUp[idx_k].compute(
-          TB_Hamiltonian[idx_k] + u * Eigen::MatrixXd(nDw.asDiagonal()) );
+          TB_HamiltonianUp[idx_k] + u * Eigen::MatrixXd(nDw.asDiagonal()) );
         KsolDw[idx_k].compute(
-          TB_Hamiltonian[idx_k] + u * Eigen::MatrixXd(nUp.asDiagonal()) );
+          TB_HamiltonianDw[idx_k] + u * Eigen::MatrixXd(nUp.asDiagonal()) );
     }
 }
 
@@ -312,9 +776,7 @@ Eigen::MatrixXd model_k_space::MFbandsUp()
     for (int idx_k = 0; idx_k < NK; idx_k++)
     {
         KsolUp[idx_k].compute(
-          TB_Hamiltonian[idx_k] + u * Eigen::MatrixXd(nDw.asDiagonal()) );
-        KsolDw[idx_k].compute(
-          TB_Hamiltonian[idx_k] + u * Eigen::MatrixXd(nUp.asDiagonal()) );
+          TB_HamiltonianUp[idx_k] + u * Eigen::MatrixXd(nDw.asDiagonal()) );
         for (int idxEn = 0; idxEn < NA * NY * NORB; idxEn++)
         {
             bandsUp(idx_k, idxEn) = KsolUp[idx_k].eigenvalues()(idxEn);
@@ -327,10 +789,8 @@ Eigen::MatrixXd model_k_space::MFbandsDw()
 {
     for (int idx_k = 0; idx_k < NK; idx_k++)
     {
-        KsolUp[idx_k].compute(
-          TB_Hamiltonian[idx_k] + u * Eigen::MatrixXd(nDw.asDiagonal()) );
         KsolDw[idx_k].compute(
-          TB_Hamiltonian[idx_k] + u * Eigen::MatrixXd(nUp.asDiagonal()) );
+          TB_HamiltonianDw[idx_k] + u * Eigen::MatrixXd(nUp.asDiagonal()) );
         for (int idxEn = 0; idxEn < NA * NY * NORB; idxEn++)
         {
             bandsDw(idx_k, idxEn) = KsolDw[idx_k].eigenvalues()(idxEn);
@@ -594,13 +1054,13 @@ void model_k_space::damp(unsigned it)
     // Introduces damping by varying the weight given to
     // the newly calculated fields.
     double factor = 1.2;
-    double lbda = 0.5 / (factor * MAX_IT);
+    double lbd = 0.5 / (factor * MAX_IT);
     if (it % DAMP_FREQ == 0)
     {
-        nUp = ( 0.5 + lbda * it ) * nUp\
-        + ( 0.5 - lbda * it) * nUpOld;
-        nDw = ( 0.5 + lbda * it ) * nDw\
-        + ( 0.5 - lbda * it) * nDwOld;
+        nUp = ( 0.5 + lbd * it ) * nUp\
+        + ( 0.5 - lbd * it) * nUpOld;
+        nDw = ( 0.5 + lbd * it ) * nDw\
+        + ( 0.5 - lbd * it) * nDwOld;
     }
 }
 
