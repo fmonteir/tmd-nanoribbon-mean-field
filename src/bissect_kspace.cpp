@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
+#include <limits>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 #include "aux.hpp"
@@ -74,7 +75,6 @@ int main(int argc, char **argv)
      53507733, 689926744, 1120258236, 1137701721, 878774344,
      1204014339, 899882252, 1649945363, 885341924, 1188020622};
     double mu = 0.0;
-    double bestVarGrandPot = 0.0;
     double bestElDensLow = 0.0;
     double bestElDensHigh = 0.0;
     int it_bissect = 0;
@@ -89,36 +89,34 @@ int main(int argc, char **argv)
 
     //
 
-    model_k_space solverLow(tmd, u, muLow, beta);
-    solverLow.TMDnanoribbon();
-    int seed = seeds[0];
-    solverLow.init_para(seed);
-    unsigned it = 0;
-    while ( solverLow.loop_condition(it) )
-    {
-        solverLow.anneal(it);
-        solverLow.diagonalize();
-        solverLow.fermi();
-        solverLow.update();
-        solverLow.damp(it);
-        solverLow.tolerance_check();
-        it++;
-    }
-    solverLow.compute_grand_potential();
-    bestVarGrandPot = solverLow.grand_potential();
-    bestElDensLow = solverLow.filling();
-
     double VarGrandPotArr[noSeeds];
     double ElDensArr[noSeeds];
 
     #pragma omp parallel for num_threads(NTH)
+    double bestVarGrandPot = 0.0;
     for (int indSols=0; indSols < noSeeds; indSols++)
     {
+        model_k_space solverLow(tmd, u, muLow, beta);
+        solverLow.TMDnanoribbon();
+        seed = seeds[indSols];
+        solverLow.init_para(seed);
+        unsigned it = 0;
+        while ( solverLow.loop_condition(it) )
+        {
+            solverLow.anneal(it);
+            solverLow.diagonalize();
+            solverLow.fermi();
+            solverLow.update();
+            solverLow.damp(it);
+            solverLow.tolerance_check();
+            it++;
+        }
+        solverLow.compute_grand_potential();
+
         model_k_space solverLowRd(tmd, u, muLow, beta);
         solverLowRd.TMDnanoribbon();
-        seed = seeds[indSols];
         solverLowRd.init_random(seed);
-        unsigned it = 0;
+        it = 0;
         while ( solverLowRd.loop_condition(it) )
         {
             solverLowRd.anneal(it);
@@ -130,10 +128,18 @@ int main(int argc, char **argv)
             it++;
         }
         solverLowRd.compute_grand_potential();
-        VarGrandPotArr[indSols] = solverLowRd.grand_potential();
-        ElDensArr[indSols] = solverLowRd.filling();
+        if (solverLowRd.grand_potential() < solverLow.grand_potential())
+        {
+            VarGrandPotArr[indSols] = solverLowRd.grand_potential();
+            ElDensArr[indSols] = solverLowRd.filling();
+        }
+        else
+        {
+            VarGrandPotArr[indSols] = solverLow.grand_potential();
+            ElDensArr[indSols] = solverLow.filling();
+        }
     }
-
+    double bestVarGrandPot = std::numeric_limits<double>::max();
     for (int indSols=0; indSols < noSeeds; indSols++)
     {
         if (VarGrandPotArr[indSols] < bestVarGrandPot)
@@ -143,37 +149,30 @@ int main(int argc, char **argv)
         }
     }
 
-    //
-
-    //
-
-    model_k_space solverHigh(tmd, u, muHigh, beta);
-    solverHigh.TMDnanoribbon();
-    seed = seeds[0];
-    solverHigh.init_para(seed);
-    it = 0;
-    while ( solverHigh.loop_condition(it) )
-    {
-        solverHigh.anneal(it);
-        solverHigh.diagonalize();
-        solverHigh.fermi();
-        solverHigh.update();
-        solverHigh.damp(it);
-        solverHigh.tolerance_check();
-        it++;
-    }
-    solverHigh.compute_grand_potential();
-    bestVarGrandPot = solverHigh.grand_potential();
-    bestElDensHigh = solverHigh.filling();
-
     #pragma omp parallel for num_threads(NTH)
     for (int indSols=0; indSols < noSeeds; indSols++)
     {
+        model_k_space solverHigh(tmd, u, muHigh, beta);
+        solverHigh.TMDnanoribbon();
+        seed = seeds[indSols];
+        solverHigh.init_para(seed);
+        it = 0;
+        while ( solverHigh.loop_condition(it) )
+        {
+            solverHigh.anneal(it);
+            solverHigh.diagonalize();
+            solverHigh.fermi();
+            solverHigh.update();
+            solverHigh.damp(it);
+            solverHigh.tolerance_check();
+            it++;
+        }
+        solverHigh.compute_grand_potential();
+
         model_k_space solverHighRd(tmd, u, muHigh, beta);
         solverHighRd.TMDnanoribbon();
-        seed = seeds[indSols];
         solverHighRd.init_random(seed);
-        unsigned it = 0;
+        it = 0;
         while ( solverHighRd.loop_condition(it) )
         {
             solverHighRd.anneal(it);
@@ -185,10 +184,18 @@ int main(int argc, char **argv)
             it++;
         }
         solverHighRd.compute_grand_potential();
-        VarGrandPotArr[indSols] = solverHighRd.grand_potential();
-        ElDensArr[indSols] = solverHighRd.filling();
+        if (solverHighRd.grand_potential() < solverHighRd.grand_potential())
+        {
+            VarGrandPotArr[indSols] = solverHighRd.grand_potential();
+            ElDensArr[indSols] = solverHighRd.filling();
+        }
+        else
+        {
+            VarGrandPotArr[indSols] = solverHigh.grand_potential();
+            ElDensArr[indSols] = solverHigh.filling();
+        }
     }
-
+    bestVarGrandPot = std::numeric_limits<double>::max();
     for (int indSols=0; indSols < noSeeds; indSols++)
     {
         if (VarGrandPotArr[indSols] < bestVarGrandPot)
@@ -197,8 +204,6 @@ int main(int argc, char **argv)
             bestElDensHigh = ElDensArr[indSols];
         }
     }
-
-    //
 
     // std::cout << bestElDensLow << std::endl << std::endl;
     // std::cout << bestElDensHigh << std::endl << std::endl;
@@ -217,39 +222,30 @@ int main(int argc, char **argv)
 
             //
 
-            bestSeed = seeds[0];
-            model_k_space solver(tmd, u, mu, beta);
-            solver.TMDnanoribbon();
-            int seed = seeds[0];
-            solver.init_para(seed);
-            unsigned it = 0;
-            while ( solver.loop_condition(it) )
-            {
-                solver.anneal(it);
-                solver.diagonalize();
-                solver.fermi();
-                solver.update();
-                solver.damp(it);
-                solver.tolerance_check();
-                it++;
-            }
-            solver.compute_grand_potential();
-            bestVarGrandPot = solver.grand_potential();
-            bestElDens = solver.filling();
-            best_nUp = solver.UpField();
-            best_nDw = solver.DwField();
-            best_bandsUp = solver.MFbandsUp();
-            best_bandsDw = solver.MFbandsDw();
-            bestSeed = 0;
-
             #pragma omp parallel for num_threads(NTH)
             for (int indSols=0; indSols < noSeeds; indSols++)
             {
+                model_k_space solver(tmd, u, mu, beta);
+                solver.TMDnanoribbon();
+                seed = seeds[indSols];
+                solver.init_para(seed);
+                it = 0;
+                while ( solver.loop_condition(it) )
+                {
+                    solver.anneal(it);
+                    solver.diagonalize();
+                    solver.fermi();
+                    solver.update();
+                    solver.damp(it);
+                    solver.tolerance_check();
+                    it++;
+                }
+                solver.compute_grand_potential();
+
                 model_k_space solverRd(tmd, u, mu, beta);
                 solverRd.TMDnanoribbon();
-                seed = seeds[indSols];
                 solverRd.init_random(seed);
-                unsigned it = 0;
+                it = 0;
                 while ( solverRd.loop_condition(it) )
                 {
                     solverRd.anneal(it);
@@ -261,14 +257,27 @@ int main(int argc, char **argv)
                     it++;
                 }
                 solverRd.compute_grand_potential();
-                VarGrandPotArr[indSols] = solverRd.grand_potential();
-                ElDensArr[indSols] = solverRd.filling();
-                nUpArr[indSols] = solverRd.UpField();
-                nDwArr[indSols] = solverRd.DwField();
-                bandsUpArr[indSols] = solverRd.MFbandsUp();
-                bandsDwArr[indSols] = solverRd.MFbandsDw();
+                if (solverRd.grand_potential() < solver.grand_potential())
+                {
+                    VarGrandPotArr[indSols] = solverRd.grand_potential();
+                    ElDensArr[indSols] = solverRd.filling();
+                    nUpArr[indSols] = solverRd.UpField();
+                    nDwArr[indSols] = solverRd.DwField();
+                    bandsUpArr[indSols] = solverRd.MFbandsUp();
+                    bandsDwArr[indSols] = solverRd.MFbandsDw();
+                }
+                else
+                {
+                    VarGrandPotArr[indSols] = solver.grand_potential();
+                    ElDensArr[indSols] = solver.filling();
+                    nUpArr[indSols] = solver.UpField();
+                    nDwArr[indSols] = solver.DwField();
+                    bandsUpArr[indSols] = solver.MFbandsUp();
+                    bandsDwArr[indSols] = solver.MFbandsDw();
+                }
             }
-
+            
+            bestVarGrandPot = std::numeric_limits<double>::max();
             for (int indSols=0; indSols < noSeeds; indSols++)
             {
                 if (VarGrandPotArr[indSols] < bestVarGrandPot)
