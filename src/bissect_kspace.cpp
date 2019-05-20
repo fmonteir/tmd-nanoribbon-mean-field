@@ -89,16 +89,16 @@ int main(int argc, char **argv)
 
     //
 
+
     double VarGrandPotArr[noSeeds];
     double ElDensArr[noSeeds];
 
     #pragma omp parallel for num_threads(NTH)
-    double bestVarGrandPot = 0.0;
     for (int indSols=0; indSols < noSeeds; indSols++)
     {
         model_k_space solverLow(tmd, u, muLow, beta);
         solverLow.TMDnanoribbon();
-        seed = seeds[indSols];
+        int seed = seeds[indSols];
         solverLow.init_para(seed);
         unsigned it = 0;
         while ( solverLow.loop_condition(it) )
@@ -154,9 +154,9 @@ int main(int argc, char **argv)
     {
         model_k_space solverHigh(tmd, u, muHigh, beta);
         solverHigh.TMDnanoribbon();
-        seed = seeds[indSols];
+        int seed = seeds[indSols];
         solverHigh.init_para(seed);
-        it = 0;
+        unsigned it = 0;
         while ( solverHigh.loop_condition(it) )
         {
             solverHigh.anneal(it);
@@ -227,9 +227,9 @@ int main(int argc, char **argv)
             {
                 model_k_space solver(tmd, u, mu, beta);
                 solver.TMDnanoribbon();
-                seed = seeds[indSols];
+                int seed = seeds[indSols];
                 solver.init_para(seed);
-                it = 0;
+                unsigned it = 0;
                 while ( solver.loop_condition(it) )
                 {
                     solver.anneal(it);
@@ -276,7 +276,7 @@ int main(int argc, char **argv)
                     bandsDwArr[indSols] = solver.MFbandsDw();
                 }
             }
-            
+
             bestVarGrandPot = std::numeric_limits<double>::max();
             for (int indSols=0; indSols < noSeeds; indSols++)
             {
