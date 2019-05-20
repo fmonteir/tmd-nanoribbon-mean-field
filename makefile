@@ -19,7 +19,7 @@ beta_start=0.01
 # Speed at which the inverse temperature increases in the annealing process
 beta_speed=1.1
 # Inverse temperature at which T becomes 0 in the annealing process
-beta_threshold=20
+beta_threshold=50
 # Number of orbitals in the tight-binding model
 norb=3
 # Tolerance given for the convergence of the self-consistent field

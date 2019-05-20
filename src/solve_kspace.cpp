@@ -30,7 +30,7 @@
 #define BETA_SPEED 1.1
 #endif
 #ifndef BETA_THRESHOLD
-#define BETA_THRESHOLD 20
+#define BETA_THRESHOLD 50
 #endif
 #ifndef DELTA
 #define DELTA 0.000001
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     int init_cond = atoi(argv[6]);
 
     model_k_space solver(tmd, u, mu, beta);
-    solver.TMDnanoribbon();
+    solver.TMDnanoribbonSOC();
 
     if (init_cond == 1)
     {

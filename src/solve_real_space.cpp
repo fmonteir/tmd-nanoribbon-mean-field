@@ -31,7 +31,7 @@
 #define BETA_SPEED 1.1
 #endif
 #ifndef BETA_THRESHOLD
-#define BETA_THRESHOLD 20
+#define BETA_THRESHOLD 50
 #endif
 #ifndef DELTA
 #define DELTA 0.000001
@@ -62,19 +62,6 @@ int main(int argc, char **argv)
     double seed = atoi(argv[5]);
     int init_cond = atoi(argv[6]);
 
-    double abs_t0;
-    if (tmd == 1) //  MoS2
-    {abs_t0 = 0.184;}
-    if (tmd == 2) //  WS2
-    {abs_t0 = 0.206;}
-    if (tmd == 3) //  MoSe2
-    {abs_t0 = 0.188;}
-    if (tmd == 4) //  WSe2
-    {abs_t0 = 0.207;}
-    if (tmd == 5) //  MoTe2
-    {abs_t0 = 0.169;}
-    if (tmd == 6) //  WTe2
-    {abs_t0 = 0.175;}
     model_real_space solver(tmd, u, mu, beta);
     solver.TMDnanoribbon();
 
@@ -117,6 +104,8 @@ int main(int argc, char **argv)
         parameters << "FILLING" << ',' << solver.filling() << '\n';
         parameters << "FINAL GRAND POTENTIAL" << ',' << solver.grand_potential() << '\n';
         parameters << "FINAL IT" << ',' << it << '\n';
+        parameters << "NX" << ',' << NX << '\n';
+        parameters << "NY" << ',' << NY << '\n';
     }
     parameters.close();
     std::ofstream nUp("temp-data/nUp.csv");
