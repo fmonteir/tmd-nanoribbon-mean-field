@@ -29,7 +29,7 @@
 #define BETA_SPEED 1.1
 #endif
 #ifndef BETA_THRESHOLD
-#define BETA_THRESHOLD 20
+#define BETA_THRESHOLD 40
 #endif
 #ifndef DELTA
 #define DELTA 0.000001
