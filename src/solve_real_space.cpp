@@ -64,6 +64,7 @@ int main(int argc, char **argv)
 
     model_real_space solver(tmd, u, mu, beta);
     solver.TMDnanoribbon();
+    // std::cout << solver.matrix() - solver.matrix().conjugate().transpose() << std::endl;
 
     if (init_cond == 1)
     {

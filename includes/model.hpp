@@ -168,6 +168,7 @@ public:
     double filling();
     void init_random(int seed);
     void init_para(int seed);
+    Eigen::Matrix<std::complex<double>, -1, -1> hopMat(int idx_k);
 };
 
 void model_k_space::TMDnanoribbon()
@@ -1116,6 +1117,11 @@ void model_k_space::init_para(int seed)
     nDw = nUp;
 }
 
+Eigen::Matrix<std::complex<double>, -1, -1> model_k_space::hopMat(int idx_k)
+{
+    return TB_HamiltonianUp[idx_k];
+}
+
 class model_real_space
 {
     double t0;
@@ -1210,6 +1216,7 @@ public:
     void init_random(int seed);
     void init_para(int seed);
     void init_dimer(int seed);
+    Eigen::Matrix<std::complex<double>, -1, -1> matrix();
 };
 
 void model_real_space::TMDnanoribbon()
@@ -1230,16 +1237,6 @@ void model_real_space::TMDnanoribbon()
     n.add_hopping(1, 0, 1, 0, std::complex<double>(-t1,0));
     n.add_hopping(2, 0, 1, 0, std::complex<double>(t2,0));
     n.add_hopping(2, 1, 1, 0, std::complex<double>(-t12,0));
-    // R4
-    n.add_hopping(0, 0, -1, 0, std::complex<double>(t0,0));
-    n.add_hopping(1, 1, -1, 0, std::complex<double>(t11,0));
-    n.add_hopping(2, 2, -1, 0, std::complex<double>(t22,0));
-    n.add_hopping(0, 1, -1, 0, std::complex<double>(-t1,0));
-    n.add_hopping(0, 2, -1, 0, std::complex<double>(t2,0));
-    n.add_hopping(1, 2, -1, 0, std::complex<double>(-t12,0));
-    n.add_hopping(1, 0, -1, 0, std::complex<double>(t1,0));
-    n.add_hopping(2, 0, -1, 0, std::complex<double>(t2,0));
-    n.add_hopping(2, 1, -1, 0, std::complex<double>(t12,0));
     // R2
     n.add_hopping(0, 0, 1, -1, std::complex<double>(t0,0));
     n.add_hopping(1, 1, 1, -1, std::complex<double>((t11 + 3 * t22)/4,0));
@@ -1250,16 +1247,6 @@ void model_real_space::TMDnanoribbon()
     n.add_hopping(1, 0, 1, -1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
     n.add_hopping(2, 0, 1, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
     n.add_hopping(2, 1, 1, -1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
-    // R5
-    n.add_hopping(0, 0, -1, 1, std::complex<double>(t0,0));
-    n.add_hopping(1, 1, -1, 1, std::complex<double>((t11 + 3 * t22 ) / 4,0));
-    n.add_hopping(2, 2, -1, 1, std::complex<double>((3 * t11 + t22 ) / 4,0));
-    n.add_hopping(0, 1, -1, 1, std::complex<double>(-t1/2-sqrt(3)*t2/2,0));
-    n.add_hopping(0, 2, -1, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(1, 2, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4+t12,0));
-    n.add_hopping(1, 0, -1, 1, std::complex<double>(t1/2-sqrt(3)*t2/2,0));
-    n.add_hopping(2, 0, -1, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(2, 1, -1, 1, std::complex<double>(sqrt(3)*(t22-t11)/4-t12,0));
     // R3
     n.add_hopping(0, 0, 0, -1, std::complex<double>(t0,0));
     n.add_hopping(1, 1, 0, -1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
@@ -1270,16 +1257,8 @@ void model_real_space::TMDnanoribbon()
     n.add_hopping(1, 0, 0, -1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
     n.add_hopping(2, 0, 0, -1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
     n.add_hopping(2, 1, 0, -1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
-    // R6
-    n.add_hopping(0, 0, 0, 1, std::complex<double>(t0,0));
-    n.add_hopping(1, 1, 0, 1, std::complex<double>(( t11 + 3 * t22 ) / 4,0));
-    n.add_hopping(2, 2, 0, 1, std::complex<double>(( 3 * t11 + t22 ) / 4,0));
-    n.add_hopping(0, 1, 0, 1, std::complex<double>(t1/2+sqrt(3)*t2/2,0));
-    n.add_hopping(0, 2, 0, 1, std::complex<double>(sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(1, 2, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4-t12,0));
-    n.add_hopping(1, 0, 0, 1, std::complex<double>(-t1/2+sqrt(3)*t2/2,0));
-    n.add_hopping(2, 0, 0, 1, std::complex<double>(-sqrt(3)*t1/2-t2/2,0));
-    n.add_hopping(2, 1, 0, 1, std::complex<double>(-sqrt(3)*(t22-t11)/4+t12,0));
+
+    TB_Hamiltonian = Eigen::MatrixXd::Zero(NORB * NX * NY, NORB * NX * NY);
 
     // Build the Tight-binding part of the Hamiltonian
     for (int x = 0; x < NX; x++ )
@@ -1300,6 +1279,8 @@ void model_real_space::TMDnanoribbon()
                   if ( end_y >= 0 && end_y < NY )
                   {
                       TB_Hamiltonian(start_idx, end_idx)
+                         = n.hoppings[orb].at(neighbor_idx);
+                      TB_Hamiltonian(end_idx, start_idx)
                          = n.hoppings[orb].at(neighbor_idx);
                   }
               }
@@ -1680,4 +1661,9 @@ void model_real_space::init_dimer(int seed)
     double nSum = nUp.sum() + nDw.sum();
     nUp = nUp / nSum * 2 / 3 * NORB * NX * NY;
     nDw = nDw / nSum * 2 / 3 * NORB * NX * NY;
+}
+
+Eigen::Matrix<std::complex<double>, -1, -1> model_real_space::matrix()
+{
+    return TB_Hamiltonian;
 }
