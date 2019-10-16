@@ -762,7 +762,8 @@ Eigen::MatrixXd model_k_space::TBbandsDw()
 
 void model_k_space::diagonalize()
 {
-    #pragma omp parallel for num_threads(NTH)
+    // #pragma omp parallel for num_threads(NTH)
+    // check parallel
     for (int idx_k = 0; idx_k < NK; idx_k++)
     {
         KsolUp[idx_k].compute(
@@ -806,7 +807,8 @@ void model_k_space::fermi()
     //  If beta is greater or equal to a threshold, it returns the step function.
     FermiDistUp = Eigen::MatrixXd::Zero(NK, NA * NORB * NY);
     FermiDistDw = Eigen::MatrixXd::Zero(NK, NA * NORB * NY);
-    #pragma omp parallel for num_threads(NTH)
+    // #pragma omp parallel for num_threads(NTH)
+    // check parallel
     for (int idx_k = 0; idx_k < NK; idx_k++ )
     {
         for (int idxEn=0; idxEn < NA * NY * NORB; idxEn++)
